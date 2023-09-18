@@ -665,7 +665,6 @@ class MetabaseClient:
                 # Prepare attributes for population through _extract_card_exposures calls
                 self.models_exposed = []
                 self.native_query = ""
-                native_query = ""
 
                 exposure = self.api("get", f"/api/{exposure_type}/{exposure_id}")
                 exposure_name = exposure.get("name", "Exposure [Unresolved Name]")
@@ -676,24 +675,13 @@ class MetabaseClient:
 
                 # Process exposure
                 if exposure_type == "card":
-                    # Build header for card and extract models to self.models_exposed
-                    header = "### Visualization: {}\n\n".format(
-                        exposure.get("display", "Unknown").title()
-                    )
-
                     # Parse Metabase question
                     self._extract_card_exposures(exposure_id, exposure, refable_models)
-                    native_query = self.native_query
 
                 elif exposure_type == "dashboard":
                     # We expect this dict key in order to iter through questions
                     if "ordered_cards" not in exposure:
                         continue
-
-                    # Build header for dashboard and extract models for each question to self.models_exposed
-                    header = "### Dashboard Cards: {}\n\n".format(
-                        str(len(exposure["ordered_cards"]))
-                    )
 
                     # Iterate through dashboard questions
                     for dashboard_item in exposure["ordered_cards"]:
@@ -740,13 +728,11 @@ class MetabaseClient:
                         exposure_id=exposure_id,
                         name=exposure_name,
                         label=exposure_label,
-                        header=header,
-                        created_at=exposure["created_at"],
                         creator_name=creator_name,
                         creator_email=creator_email,
                         refable_models=refable_models,
                         description=exposure.get("description", ""),
-                        native_query=native_query,
+                        collection_name=exposure["collection"]["name"],
                     )
                 )
 
@@ -872,13 +858,11 @@ class MetabaseClient:
         exposure_id: int,
         name: str,
         label: str,
-        header: str,
-        created_at: str,
         creator_name: str,
         creator_email: str,
         refable_models: Mapping,
+        collection_name: str = "",
         description: str = "",
-        native_query: str = "",
     ) -> Mapping:
         """Builds an exposure object representation as defined here: https://docs.getdbt.com/reference/exposure-properties
 
@@ -887,15 +871,12 @@ class MetabaseClient:
             exposure_id {str} -- Card or Dashboard id in Metabase
             name {str} -- Name of exposure
             label {str} -- Title of the card or dashboard in Metabase
-            header {str} -- The header goes at the top of the description and is useful for prefixing metadata
-            created_at {str} -- Timestamp of exposure creation derived from Metabase
             creator_name {str} -- Creator name derived from Metabase
             creator_email {str} -- Creator email derived from Metabase
             refable_models {str} -- List of dbt models from dbt parser which can validly be referenced, parsed exposures are always checked against this list to avoid generating invalid yaml
 
         Keyword Arguments:
             description {str} -- The description of the exposure as documented in Metabase. (default: No description provided in Metabase)
-            native_query {str} -- If exposure contains SQL, this arg will include the SQL in the dbt exposure documentation. (default: {""})
 
         Returns:
             Mapping -- JSON object representation of single exposure.
@@ -907,44 +888,18 @@ class MetabaseClient:
             "dashboard",
         ), "Cannot construct exposure for object type of {}".format(exposure_type)
 
-        if native_query:
-            # Format query into markdown code block
-            native_query = "#### Query\n\n```\n{}\n```\n\n".format(
-                "\n".join(
-                    sql_line
-                    for sql_line in self.native_query.strip().split("\n")
-                    if sql_line.strip() != ""
-                )
-            )
-
-        if not description:
-            description = "No description provided in Metabase\n\n"
-
-        # Format metadata as markdown
-        metadata = (
-            "#### Metadata\n\n"
-            + "Metabase Id: __{}__\n\n".format(exposure_id)
-            + "Created On: __{}__".format(created_at)
-        )
-
-        # Build description
-        description = (
-            header + ("{}\n\n".format(description.strip())) + native_query + metadata
-        )
-
         # Output exposure
-
-        return {
+        exposure = {
             "name": name,
             "label": label,
             "description": description,
             "type": "analysis" if exposure_type == "card" else "dashboard",
             "url": f"{self.base_url}/{exposure_type}/{exposure_id}",
-            "maturity": "medium",
             "owner": {
                 "name": creator_name,
                 "email": creator_email or "",
             },
+            "meta": {"platform": "Metabase", "path": collection_name},
             "depends_on": list(
                 set(
                     [
@@ -955,6 +910,7 @@ class MetabaseClient:
                 )
             ),
         }
+        return {k: v for k, v in exposure.items() if v}
 
     def api(
         self,
