@@ -861,8 +861,8 @@ class MetabaseClient:
         creator_name: str,
         creator_email: str,
         refable_models: Mapping,
-        collection_name: str = "",
         description: str = "",
+        collection_name: str = "",
     ) -> Mapping:
         """Builds an exposure object representation as defined here: https://docs.getdbt.com/reference/exposure-properties
 
