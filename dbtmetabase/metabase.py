@@ -122,6 +122,7 @@ class MetabaseClient:
         password: Optional[str],
         verify: Optional[Union[str, bool]] = None,
         cert: Optional[Union[str, Tuple[str, str]]] = None,
+        http_headers: Optional[dict] = None,
         session_id: Optional[str] = None,
         use_http: bool = False,
         sync: Optional[bool] = True,
@@ -139,6 +140,7 @@ class MetabaseClient:
             use_http {bool} -- Use HTTP instead of HTTPS. (default: {False})
             verify {Union[str, bool]} -- Path to certificate or disable verification. (default: {None})
             cert {Union[str, Tuple[str, str]]} -- Path to a custom certificate to be used by the Metabase client. (default: {None})
+            http_headers {dict} -- HTTP headers to be used by the Metabase client. (default: {None})
             session_id {str} -- Metabase session ID. (default: {None})
             sync (bool, optional): Attempt to synchronize Metabase schema with local models. Defaults to True.
             sync_timeout (Optional[int], optional): Synchronization timeout (in secs). Defaults to None.
@@ -148,6 +150,7 @@ class MetabaseClient:
         self.session = requests.Session()
         self.session.verify = verify
         self.session.cert = cert
+        self.session.headers.update(http_headers)
         adaptor = HTTPAdapter(max_retries=Retry(total=3, backoff_factor=0.5))
         self.session.mount(self.base_url, adaptor)
         session_header = session_id or self.get_session_id(user, password)

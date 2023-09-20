@@ -1,7 +1,7 @@
 import logging
 import functools
 from pathlib import Path
-from typing import Iterable, Optional, Callable, Any
+from typing import Iterable, Optional, Callable, Any, Tuple
 import os
 
 import click
@@ -86,7 +86,8 @@ class OptionAcceptableFromConfig(click.Option):
     more resilence to raising an error when the option exists in the users config.
 
     This also overrides default values for boolean CLI flags (e.g. --use_metabase_http/--use_metabase_https) in options when
-    no CLI flag is passed, but a value is provided in the config file (e.g. metabase_use_http: True)."""
+    no CLI flag is passed, but a value is provided in the config file (e.g. metabase_use_http: True).
+    """
 
     def process_value(self, ctx: click.Context, value: Any) -> Any:
         if value is not None:
@@ -115,10 +116,10 @@ class OptionAcceptableFromConfig(click.Option):
 
 class CommandController(click.Command):
     """This class inherets from click.Command and supplies custom help text renderer to
-    render our docstrings a little prettier as well as a hook in the invoke to load from a config file if it exists."""
+    render our docstrings a little prettier as well as a hook in the invoke to load from a config file if it exists.
+    """
 
     def invoke(self, ctx: click.Context):
-
         if CONFIG:
             for param, value in ctx.params.items():
                 if value is None and param in CONFIG:
@@ -267,6 +268,13 @@ def shared_opts(func: Callable) -> Callable:
         metavar="CERT",
         type=click.Path(exists=True, file_okay=True, dir_okay=False),
         help="Path to certificate bundle used by Metabase client",
+    )
+    @click.option(
+        "--metabase_http_header",
+        cls=OptionAcceptableFromConfig,
+        type=(str, str),
+        multiple=True,
+        help="Additional HTTP request header to be sent to Metabase.",
     )
     @click.option(
         "--metabase_sync/--metabase_sync_skip",
@@ -548,6 +556,7 @@ def models(
     metabase_session_id: Optional[str] = None,
     metabase_use_http: bool = False,
     metabase_verify: Optional[str] = None,
+    metabase_http_header: Optional[Tuple[Tuple[str, str]]] = None,
     metabase_sync: bool = True,
     metabase_sync_timeout: Optional[int] = None,
     metabase_exclude_sources: bool = False,
@@ -573,6 +582,7 @@ def models(
         metabase_session_id (Optional[str], optional): Metabase session id. Defaults to none.
         metabase_use_http (bool, optional): Use HTTP to connect to Metabase. Defaults to False.
         metabase_verify (Optional[str], optional): Path to custom certificate bundle to be used by Metabase client. Defaults to None.
+        metabase_http_header (Optional[str], optional): Additional HTTP request headers to be sent to Metabase. Defaults to None.
         metabase_sync (bool, optional): Attempt to synchronize Metabase schema with local models. Defaults to True.
         metabase_sync_timeout (Optional[int], optional): Synchronization timeout (in secs). If set, we will fail hard on synchronization failure; if not set, we will proceed after attempting sync regardless of success. Only valid if sync is enabled. Defaults to None.
         metabase_exclude_sources (bool, optional): Flag to skip exporting sources to Metabase. Defaults to False.
@@ -610,6 +620,7 @@ def models(
         session_id=metabase_session_id,
         use_http=metabase_use_http,
         verify=metabase_verify,
+        http_headers=metabase_http_header,
         database=metabase_database,
         sync=metabase_sync,
         sync_timeout=metabase_sync_timeout,
@@ -672,6 +683,7 @@ def exposures(
     metabase_session_id: Optional[str] = None,
     metabase_use_http: bool = False,
     metabase_verify: Optional[str] = None,
+    metabase_http_header: Optional[Tuple[Tuple[str, str]]] = None,
     metabase_sync: bool = True,
     metabase_sync_timeout: Optional[int] = None,
     output_path: str = ".",
@@ -697,6 +709,7 @@ def exposures(
         metabase_session_id (Optional[str], optional): Metabase session id. Defaults to none.
         metabase_use_http (bool, optional): Use HTTP to connect to Metabase. Defaults to False.
         metabase_verify (Optional[str], optional): Path to custom certificate bundle to be used by Metabase client. Defaults to None.
+        metabase_http_header (Optional[str], optional): Additional HTTP request headers to be sent to Metabase. Defaults to None.
         metabase_sync (bool, optional): Attempt to synchronize Metabase schema with local models. Defaults to True.
         metabase_sync_timeout (Optional[int], optional): Synchronization timeout (in secs). If set, we will fail hard on synchronization failure; if not set, we will proceed after attempting sync regardless of success. Only valid if sync is enabled. Defaults to None.
         output_path (str): Output path for generated exposure yaml. Defaults to "." local dir.
@@ -732,6 +745,7 @@ def exposures(
         session_id=metabase_session_id,
         use_http=metabase_use_http,
         verify=metabase_verify,
+        http_headers=metabase_http_header,
         database=metabase_database,
         sync=metabase_sync,
         sync_timeout=metabase_sync_timeout,

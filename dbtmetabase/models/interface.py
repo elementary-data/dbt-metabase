@@ -28,6 +28,7 @@ class MetabaseInterface:
         session_id: Optional[str] = None,
         use_http: bool = False,
         verify: Optional[Union[str, bool]] = True,
+        http_headers: Optional[dict] = None,
         cert: Optional[Union[str, Tuple[str, str]]] = None,
         sync: bool = True,
         sync_timeout: Optional[int] = None,
@@ -43,6 +44,7 @@ class MetabaseInterface:
             session_id (Optional[str], optional): Session ID. Defaults to None.
             use_http (bool, optional): Use HTTP to connect to Metabase.. Defaults to False.
             verify (Optional[Union[str, bool]], optional): Path to custom certificate bundle to be used by Metabase client. Defaults to True.
+            http_headers (Optional[dict], optional): HTTP headers to be used by the Metabase client. Defaults to None.
             cert (Optional[Union[str, Tuple[str, str]]], optional): Path to a custom certificate to be used by the Metabase client, or a tuple containing the path to the certificate and key. Defaults to None.
             sync (bool, optional): Attempt to synchronize Metabase schema with local models. Defaults to True.
             sync_timeout (Optional[int], optional): Synchronization timeout (in secs). Defaults to None.
@@ -59,6 +61,7 @@ class MetabaseInterface:
         self.use_http = use_http
         self.verify = verify
         self.cert = cert
+        self.http_headers = dict(http_headers) if http_headers else {}
         # Metabase Sync
         self.sync = sync
         self.sync_timeout = sync_timeout
@@ -101,6 +104,7 @@ class MetabaseInterface:
             use_http=self.use_http,
             verify=self.verify,
             cert=self.cert,
+            http_headers=self.http_headers,
             session_id=self.session_id,
             sync=self.sync,
             sync_timeout=self.sync_timeout,
